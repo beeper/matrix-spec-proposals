@@ -26,7 +26,7 @@ and leads to bugs, such as https://github.com/matrix-org/synapse/issues/14837
 
 The homeserver should generate a public (`m.read`) read receipt for the user whenever the user
 sends an event to the room. The receipt should point at the newly created event. This receipt should
-be generated prior to calculating notification counts or push rules.
+be generated prior to calculating notification counts or push rules, simplifying the logic.
 
 Clients should receive this receipt at the same time as receiving the event itself back from the
 homeserver (in the same /sync payload). The read receipt can't be sent prior to the event, as the
@@ -36,37 +36,40 @@ receipt for the same event.
 
 The client logic for marking a room as read can be simplified to moving the m.read to the latest
 event in the room and notifying the server if that's different than the current receipt position.
+Clients wouldn't need to feature detect whether the homeserver implements this proposal, as the
+client sending a read receipt for their own message shouldn't harm homeservers that predate it. In
+practice, some clients already do this.
 
 ## Potential issues
 
 There is a risk that when implementing this change room notification counts could change. For example,
 if a user sent an event to a room prior to implementing this MSC, and then the homeserver starts using
 this MSC, the homeserver will still need to treat the last event sent by the user as the read receipt,
-meaning we won't actually be able to drop the complicated code.
+meaning we won't actually be able to drop the complicated code. However, in practice, some homeservers
+such as synapse don't need to reevaluate notification counts and instead only calculate them at event
+send time, in which case there's no risk, as no notification count would be generated for a user sent
+event prior to or after this proposal is implemented.
 
-However, in practice, some homeservers such as synapse don't need to reevaluate notification counts and
-instead only calculate them at event send time, in which case there's no risk.
-
-Hypothetically homeserver implementations could also backfill read receipts for users based on their
-last sent event, but this would generate a fair amount of /sync traffic to clients when it happens and
-should be avoided.
+To ease transitioning, hypothetically homeserver implementations could also backfill read receipts for
+users based on their last sent event, but this would generate a fair amount of /sync traffic to
+clients when it happens and should be avoided.
 
 ## Alternatives
 
 We could stay with the existing behaviour, and instead just improve the specification to make it more
 clear what clients should do.
 
-The homeserver could alternatively generate a private read receipt as opposed to a public read receipt,
-but using a public receipt also simplifies the client implementations for other users in the same room
-to display read receipts for other users. 
-
 We could also just change the spec to say the clients are now allowed to send read receipts sent by their
 own user, as opposed to explicitely discouraging it as we do for today. This would allow for simpler
 client implementations, but the homeserver would still have the complexity of dealing with clients that
 don't do this.
 
-This proposal suggests just changing how read receipts are generated as part of a new spec version for
-all rooms. Alternatively, we could gate this behind a new room version, but that shouldn't be necessary.
+The homeserver could alternatively generate a private read receipt as opposed to a public read receipt,
+but using a public receipt also simplifies the client implementations for other users in the same room
+to display read receipts for other users. 
+
+This proposal suggests just changing how read receipts are generated as part of a new Matrix spec version
+for all rooms. Alternatively, we could gate this behind a new room version, but that shouldn't be necessary.
 
 ## Security considerations
 

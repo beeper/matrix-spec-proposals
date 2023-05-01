@@ -16,17 +16,18 @@ https://spec.matrix.org/v1.5/client-server-api/#receiving-notifications says (em
 > When the user updates their read receipt (either by using the API or by sending an event),
 > notifications prior to and including that event MUST be marked as read.
 
-This leads to overly complicated implementations on both the client and the server. Clients that
-wish to update the read receipt upon opening the room need to traverse the timeline to figure out
-which event is the last one not sent by them to send the read receipt for. Homeservers need to be
-have code to clear notification counts on both read receipts and event sends. This code is complex
-and leads to bugs, such as https://github.com/matrix-org/synapse/issues/14837
+This leads to overly complicated implementations on both the client and the server. Each codebase
+needs to comapre the sender of events as well as the read receipts in order to handle marking the
+room as read, clearning notification counts, and displaying read markers for other users. This code
+is complex and leads to bugs, such as https://github.com/matrix-org/synapse/issues/14837
 
 ## Proposal
 
 The homeserver should generate a public (`m.read`) read receipt for the user whenever the user
 sends an event to the room. The receipt should point at the newly created event. This receipt should
-be generated prior to calculating notification counts or push rules, simplifying the logic.
+be generated prior to calculating notification counts or push rules. This means the concept of
+"where the user has read up to" is simplified to just a read receipt, where previously it was the
+greater value of the user's read receipt and their last sent event.
 
 Clients should receive this receipt at the same time as receiving the event itself back from the
 homeserver (in the same /sync payload). The read receipt can't be sent prior to the event, as the
@@ -38,7 +39,7 @@ The client logic for marking a room as read can be simplified to moving the m.re
 event in the room and notifying the server if that's different than the current receipt position.
 Clients wouldn't need to feature detect whether the homeserver implements this proposal, as the
 client sending a read receipt for their own message shouldn't harm homeservers that predate it. In
-practice, some clients already do this.
+practice, some clients already generate read receipts in this way.
 
 ## Potential issues
 
@@ -64,9 +65,10 @@ own user, as opposed to explicitely discouraging it as we do for today. This wou
 client implementations, but the homeserver would still have the complexity of dealing with clients that
 don't do this.
 
-The homeserver could alternatively generate a private read receipt as opposed to a public read receipt,
-but using a public receipt also simplifies the client implementations for other users in the same room
-to display read receipts for other users. 
+The homeserver could alternatively generate a private read receipt (`m.read.private`) as opposed to a
+public read receipt, but using a public receipt also simplifies the client implementations for other
+users in the same room to display read receipts for other users. You're already sending a message to
+the room, so no privacy concern exists.
 
 This proposal suggests just changing how read receipts are generated as part of a new Matrix spec version
 for all rooms. Alternatively, we could gate this behind a new room version, but that shouldn't be necessary.
@@ -78,7 +80,8 @@ have read it.)
 
 ## Unstable prefix
 
-None, but this functionality should be implemented behind a configuration flag.
+None, but this functionality should be implemented behind a configuration flag so that homeservers can opt
+into the functionality before this MSC is merged.
 
 ## Dependencies
 

@@ -61,7 +61,7 @@ We could stay with the existing behaviour, and instead just improve the specific
 clear what clients should do.
 
 We could also just change the spec to say the clients are now allowed to send read receipts sent by their
-own user, as opposed to explicitely discouraging it as we do for today. This would allow for simpler
+own user, as opposed to explicitly discouraging it as we do for today. This would allow for simpler
 client implementations, but the homeserver would still have the complexity of dealing with clients that
 don't do this.
 

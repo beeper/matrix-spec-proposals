@@ -38,11 +38,10 @@ This proposal suggests two changes to events with the `m.annotation` relation.
    The `shortcode` must have a length of less than or equal to 100 bytes. This
    MSC does not specify any other requirements on this field. Future MSCs such
    as [MSC2545](https://github.com/matrix-org/matrix-spec-proposals/pull/2545)
-   may provide conventions for the format of the field such as
-   requiring/recommending that the shortcode start and end with a colon (`:`).
+   may provide conventions for the format of the field.
 
-   The length restriction must be enforced by servers when sending reactions,
-   but servers should not reject events coming across federation due to having
+   The length restriction SHOULD be enforced by servers when sending reactions,
+   but servers MUST NOT reject events coming across federation due to having
    too many bytes in the `shortcode` field. Servers may still opt to locally
    redact events having too many bytes in the `shortcode` field.
 
